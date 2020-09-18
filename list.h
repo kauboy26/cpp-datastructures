@@ -2,6 +2,7 @@
 
 #include <utility>
 #include <stdexcept>
+#include <sstream>
 
 namespace vk_data {
 
@@ -146,7 +147,7 @@ public:
 	T pop() {
 		if (!_size)
 			throw std::runtime_error("List has no elements.");
-		
+
 		T data = std::move(_head->_data);
 		LLNode<T> *next = _head->_next;
 		delete _head;
@@ -178,5 +179,21 @@ public:
 	}
 
 	int size() const { return _size; }
+
+	friend std::ostream& operator<<(std::ostream& os, const LinkedList& ll) {
+		os << '[';
+		auto curr = ll._head;
+		while (curr != ll._tail) {
+			os << curr->_data << ", ";
+			curr = curr->_next;
+		}
+
+		if (curr != nullptr)
+			os << curr->_data;
+
+		os << ']';
+
+		return os;
+	}
 };
 } // namespace vk_data
