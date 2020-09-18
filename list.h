@@ -144,6 +144,9 @@ public:
 	}
 
 	T pop() {
+		if (!_size)
+			throw std::runtime_error("List has no elements.");
+		
 		T data = std::move(_head->_data);
 		LLNode<T> *next = _head->_next;
 		delete _head;
@@ -176,4 +179,4 @@ public:
 
 	int size() const { return _size; }
 };
-} // namespace vk_todo
+} // namespace vk_data
