@@ -34,9 +34,9 @@ public:
 		if (_left && _right)
 			return _right->_height - _left->_height;
 		else if (_left)
-			return _left->_height - 1;
+			return -1 - _left->_height;
 		else if (_right)
-			return _right->_height + 1;
+			return _right->_height - (-1);
 		else
 			return 0;
 	}
@@ -152,8 +152,10 @@ private:
 			os << "<null>";
 		else {
 			os << '<' << curr->_key << ", " << curr->_data << '>';
-			_printHelper(os, curr->_left, shift + 1);
-			_printHelper(os, curr->_right, shift + 1);
+			if (curr->_left || curr->_right) {
+				_printHelper(os, curr->_left, shift + 1);
+				_printHelper(os, curr->_right, shift + 1);
+			}
 		}
 	}
 
@@ -168,6 +170,14 @@ private:
 
 		_clear(left);
 		_clear(right);
+	}
+
+	bool _equals(AVLNode<K, T>* mine, AVLNode<K, T>* his) {
+		return (mine == nullptr && his == nullptr)
+			|| (mine->_key == his->_key
+				&& mine->_data == his->_data
+				&& _equals(mine->_left, his->_left)
+				&& _equals(mine->_right, his->_right));
 	}
 
 public:
@@ -216,22 +226,21 @@ public:
 			auto orig = otherNodes[i & mod];
 			auto copy = myNodes[i & mod];
 
-			*copy = new AVLNode<K, T>(orig->_height, orig->_bf,
-				orig->_key, orig->_data);
+			*copy = new AVLNode<K, T>(orig->_height, orig->_key, orig->_data);
 
-			if (orig->left) {
+			if (orig->_left) {
 				end++;
-				otherNodes[end & mod] = orig->left;
-				myNodes[end & mod] = &((*copy)->left);
+				otherNodes[end & mod] = orig->_left;
+				myNodes[end & mod] = &((*copy)->_left);
 			}
-			if (orig->right) {
+			if (orig->_right) {
 				end++;
-				otherNodes[end & mod] = orig->right;
-				myNodes[end & mod] = &((*copy)->right);
+				otherNodes[end & mod] = orig->_right;
+				myNodes[end & mod] = &((*copy)->_right);
 			}
 		}
 
-		assert(end == other._size);
+		assert(end == other._size - 1);
 
 		_size = other._size;
 		_height = other._height;
@@ -251,9 +260,13 @@ public:
 		clear();
 	}
 
-	AVLTree<K, T>& operator=(AVLTree<K, T> other) {
+	AVLTree<K, T>& operator=(AVLTree<K, T, L> other) {
 		other.swap(*this);
 		return *this;
+	}
+
+	bool operator==(const AVLTree<K, T, L>& other) {
+		return _equals(_root, other._root);
 	}
 
 	void swap(AVLTree<K, T>& other) {
