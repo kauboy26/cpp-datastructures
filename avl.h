@@ -132,6 +132,48 @@ private:
 		return _fixRotations(start);
 	}
 
+	AVLNode<K, T>* _removeGreatest(AVLNode<K, T>* start, AVLNode<K, T>** ret) {
+		if (start->_right == nullptr) {
+			// we found the greatest.
+			*ret = start;
+			return start->_left;
+		}
+		
+		start->_right = _removeGreatest(start->_right, ret);
+		start->setHeight();
+		return _fixRotations(start);
+	}
+
+	AVLNode<K, T>* _remove(const K& key, AVLNode<K, T> *curr,
+												AVLNode<K, T>** ret) {
+		if (curr == nullptr)
+			return nullptr;
+
+		if (equals(key, curr->_key)) {
+			_size--;
+			*ret = curr;
+			if (curr->_left && curr->_right) {
+				AVLNode<K, T>* predecessor = nullptr;
+				curr->_left = _removeGreatest(curr->_left, &predecessor);
+				predecessor->_left = curr->_left;
+				predecessor->_right = curr->_right;
+				curr = predecessor;
+			} else if (curr->_left) {
+				return curr->_left;
+			} else {
+				// if it's a leaf, curr->_right will be a nullptr anyway.
+				return curr->_right;
+			}
+		} else if (less(key, curr->_key)) {
+			curr->_left = _remove(key, curr->_left, ret);
+		} else {
+			curr->_right = _remove(key, curr->_right, ret);
+		}
+
+		curr->setHeight();
+		return _fixRotations(curr);
+	}
+
 	void _print(std::ostream& os) const {
 		if (!_size) {
 			os << "<empty tree>";
@@ -194,8 +236,8 @@ public:
 			return;
 		}
 
-		// We are going to go through the given tree BFS style, and we are going
-		// to use two parallel queues - one to hold the other tree's nodes, and
+		// We are going to go through the other tree BFS style, and we are going
+		// to use two parallel queues: one to hold the other tree's nodes, and
 		// one to hold the next nodes that we need to create / set.
 		// The queues will have a maximum occupancy of 2 ^ height - i.e. it
 		// will maximally filled at the time when it is completely filled by the
@@ -256,9 +298,7 @@ public:
 		std::swap(_height, other._height);
 	}
 
-	~AVLTree() {
-		clear();
-	}
+	~AVLTree() { clear(); }
 
 	AVLTree<K, T>& operator=(AVLTree<K, T, L> other) {
 		other.swap(*this);
@@ -302,8 +342,16 @@ public:
 		if (!_size)
 			throw std::runtime_error("Empty tree: element not found.");
 
-		// VKTODO
-		return _root->data;
+		AVLNode<K, T>* found = nullptr;
+		_root = _remove(key, _root, &found);
+
+		if (!found)
+			throw std::runtime_error("Element not found!");
+
+		T data = std::move(found->_data);
+		delete found;
+
+		return data;
 	}
 
 	T& get(const K& key) {
