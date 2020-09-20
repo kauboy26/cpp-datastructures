@@ -56,7 +56,6 @@ private:
 	L _less;
 	AVLNode<K, T>* _root;
 	int _size;
-	int _height;
 
 	bool less(const K& k1, const K& k2) const {
 		return _less(k1, k2);
@@ -90,7 +89,7 @@ private:
 			return hinge;
 		else if (-2 == bf) {
 			// Left heavy.
-			if (hinge->_left->getBF() == -1)
+			if (hinge->_left->getBF() <= 0)
 				// Super left heavy
 				return _rotateRight(hinge);
 			else {
@@ -100,7 +99,8 @@ private:
 			}
 		} else {
 			// Right heavy.
-			if (hinge->_right->getBF() == 1)
+			assert(2 == bf);
+			if (hinge->_right->getBF() >= 0)
 				return _rotateLeft(hinge);
 			else {
 				hinge->_right = _rotateRight(hinge->_right);
@@ -193,7 +193,8 @@ private:
 		if (curr == nullptr)
 			os << "<null>";
 		else {
-			os << '<' << curr->_key << ", " << curr->_data << '>';
+			os << '<' << curr->_key << ", " << curr->_data << '>'
+				<< ':' << curr->_height << '$' << curr->getBF();
 			if (curr->_left || curr->_right) {
 				_printHelper(os, curr->_left, shift + 1);
 				_printHelper(os, curr->_right, shift + 1);
@@ -225,14 +226,12 @@ private:
 public:
 	explicit AVLTree() :
 		_root(nullptr),
-		_size(0),
-		_height(0) {}
+		_size(0) {}
 
 	AVLTree(AVLTree<K, T, L>& other) {
 		if (!other._size) {
 			_root = nullptr;
 			_size = 0;
-			_height = -1;
 			return;
 		}
 
@@ -249,9 +248,9 @@ public:
 		// i > end, the queue is empty. (Actually, since we wrap, i % array.size
 		// points to the element)
 
-		int nodesInLastRow = 1 << (other._height);
+		int nodesInLastRow = 1 << (other.height());
 		// i % nodesInLastRow == i & mod
-		int mod = ~((-1) << other._height);
+		int mod = ~((-1) << other.height());
 
 		AVLNode<K, T>* otherNodes[nodesInLastRow] = { nullptr };
 		AVLNode<K, T>** myNodes[nodesInLastRow] = { nullptr };
@@ -285,17 +284,14 @@ public:
 		assert(end == other._size - 1);
 
 		_size = other._size;
-		_height = other._height;
 	}
 
 	AVLTree(AVLTree<K, T, L>&& other) {
 		_root = nullptr;
 		_size = 0;
-		_height = 0;
 
 		std::swap(_root, other._root);
 		std::swap(_size, other._size);
-		std::swap(_height, other._height);
 	}
 
 	~AVLTree() { clear(); }
@@ -312,7 +308,6 @@ public:
 	void swap(AVLTree<K, T>& other) {
 		std::swap(_root, other._root);
 		std::swap(_size, other._size);
-		std::swap(_height, other._height);
 	}
 
 	void clear() {
@@ -321,7 +316,6 @@ public:
 		_clear(_root);
 		_root = nullptr;
 		_size = 0;
-		_height = 0;
 	}
 
 	void add(K key, T data) {
@@ -330,12 +324,10 @@ public:
 		if (!_size) {
 			_root = newNode;
 			_size = 1;
-			_height = 0;
 			return;
 		}
 
 		_root = _add(_root, newNode);
-		_height = _root->_height;
 	}
 
 	T remove(const K& key) {
@@ -407,12 +399,14 @@ public:
 	}
 
 	int height() const {
-		return _height;
+		return (_root) ? _root->_height : -1;
 	}
 
 	friend std::ostream& operator<<(std::ostream& os, const AVLTree& tree) {
 		tree._print(os);
 		return os;
 	}
+
+
 };
 } // namespace vk_data
