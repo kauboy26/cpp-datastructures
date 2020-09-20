@@ -31,6 +31,20 @@ private:
     }
 
 public:
+    class iterator : public std::iterator<
+                                std::forward_iterator_tag,
+                                T> {
+    private:
+        LLNode<T>* _p;
+    public:
+        explicit iterator(LLNode<T>* p) : _p(p) {}
+        iterator& operator++() { _p = (_p) ? _p->_next : _p; return *this; }
+        iterator operator++(int) { auto ret = *this; ++(*this); return ret; }
+        bool operator==(iterator other) const { return _p == other._p; }
+        bool operator!=(iterator other) const { return _p != other._p; }
+        T& operator*() const { return _p->_data; }
+    };
+
     explicit LinkedList() :
         _size(0),
         _head(nullptr),
@@ -179,6 +193,9 @@ public:
     }
 
     int size() const { return _size; }
+
+    iterator begin() { return iterator(_head); }
+    iterator end() { return iterator(nullptr); }
 
     friend std::ostream& operator<<(std::ostream& os, const LinkedList& ll) {
         os << '[';

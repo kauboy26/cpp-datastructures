@@ -406,7 +406,5 @@ public:
         tree._print(os);
         return os;
     }
-
-
 };
 } // namespace vk_data
