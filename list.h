@@ -31,9 +31,7 @@ private:
     }
 
 public:
-    class iterator : public std::iterator<
-                                std::forward_iterator_tag,
-                                T> {
+    class iterator : public std::iterator< std::forward_iterator_tag, T> {
     private:
         LLNode<T>* _p;
     public:
@@ -42,7 +40,7 @@ public:
         iterator operator++(int) { auto ret = *this; ++(*this); return ret; }
         bool operator==(iterator other) const { return _p == other._p; }
         bool operator!=(iterator other) const { return _p != other._p; }
-        T& operator*() const { return _p->_data; }
+        T& operator*() { return _p->_data; }
     };
 
     explicit LinkedList() :
