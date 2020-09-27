@@ -296,7 +296,100 @@ public:
 
     ~AVLTree() { clear(); }
 
-    AVLTree<K, T>& operator=(AVLTree<K, T, L> other) {
+    class Iterator : public std::iterator<std::bidirectional_iterator_tag,
+                                            std::pair<const K&, T&>> {
+    friend class AVLTree<K, T, L>;
+    private:
+        // We're going to be using the vector as a stack for in-order traversal.
+        // The "bool" portion refers to whether we have covered a node. This is
+        // necessary to figure out whether we need to examine it or not.
+        std::vector<std::pair<AVLNode<K, T>*, bool>> _history;
+        int _ptr;
+
+        // The methods below are used to fill the Iterator correctly - 
+        std::pair<AVLNode<K, T>*, bool>& _peek() {
+            return _history[_ptr];
+        }
+
+        const std::pair<AVLNode<K, T>*, bool>& _cpeek() const {
+            return _history[_ptr];
+        }
+
+        void _push(AVLNode<K, T>* node, bool covered) {
+            _history.push_back(std::make_pair(node, covered));
+            _ptr++;
+        }
+
+        void _pop() {
+            _history.pop_back();
+            _ptr--;
+        }
+        
+    public:
+        explicit Iterator() : _ptr(-1) {};
+
+        Iterator& operator++() {
+            if (_ptr < 0)
+                throw std::runtime_error("Can't iterate past end().");
+
+            // We have now covered this node.
+            _peek().second = true;
+
+            // First, attempt to seek out a child successor. We start by looking
+            // at the current node's right child, and then we keep going all
+            // the way down on the right child's left side.
+            // As we make our way down, add to the stack and mark each node as
+            // "not covered" (we haven't visited each yet).
+            // Note that if the current node didn't have a right child, the
+            // statement below and the loop immediately following it do nothing.
+            AVLNode<K, T>* next = _peek().first->_right;
+
+            while (next) {
+                _push(next, false);
+                next = next->_left;
+            }
+
+            // If our starting node had a right child, then the top of our
+            // stack should hold a node that is "not covered", i.e.
+            // _peek().second should be false. If that is the case, the loop
+            // below will do nothing.
+            // Conversely, if the starting node didn't have a right child, 
+            // the loop above did nothing and we are still pointing to our
+            // current node, that we have marked "covered". Thus, we can start
+            // popping off all the covered nodes:
+            while (_history.size() && _peek().second) {
+                _pop();
+            }
+
+            return *this;
+        }
+
+        Iterator operator++(int) {
+            auto ret = *this;
+            ++(*this);
+            return ret;
+        }
+
+        bool operator==(const Iterator& other) const {
+            return _history.size() == other._history.size() &&
+                (!_history.size() ? true : (_cpeek() == other._cpeek()));
+        }
+
+        bool operator!=(const Iterator& other) const {
+            return !(*this == other);
+        }
+
+        std::pair<const K&, T&> operator*() {
+            if (!_history.size())
+                throw std::runtime_error("Cannot dereference end() iterator.");
+
+            return std::pair<const K&, T&>(_history[_ptr].first->_key,
+                                    _history[_ptr].first->_data);
+        }
+
+    };
+
+    AVLTree<K, T, L>& operator=(AVLTree<K, T, L> other) {
         other.swap(*this);
         return *this;
     }
@@ -305,7 +398,7 @@ public:
         return _equals(_root, other._root);
     }
 
-    void swap(AVLTree<K, T>& other) {
+    void swap(AVLTree<K, T, L>& other) {
         std::swap(_root, other._root);
         std::swap(_size, other._size);
     }
@@ -400,6 +493,25 @@ public:
 
     int height() const {
         return (_root) ? _root->_height : -1;
+    }
+
+    Iterator begin() {
+        if (!_size)
+            return end();
+
+        Iterator ret;
+
+        AVLNode<K, T>* curr = _root;
+        while (curr) {
+            ret._push(curr, false);
+            curr = curr->_left;
+        }
+
+        return ret;
+    }
+
+    Iterator end() {
+        return Iterator();
     }
 
     friend std::ostream& operator<<(std::ostream& os, const AVLTree& tree) {
