@@ -386,7 +386,6 @@ public:
             return std::pair<const K&, T&>(_history[_ptr].first->_key,
                                     _history[_ptr].first->_data);
         }
-
     };
 
     AVLTree<K, T, L>& operator=(AVLTree<K, T, L> other) {
@@ -501,7 +500,7 @@ public:
 
         Iterator ret;
 
-        AVLNode<K, T>* curr = _root;
+        auto curr = _root;
         while (curr) {
             ret._push(curr, false);
             curr = curr->_left;
@@ -512,6 +511,31 @@ public:
 
     Iterator end() {
         return Iterator();
+    }
+
+    Iterator find(const K& key) {
+        if (!_size)
+            return end();
+
+        Iterator ret;
+        
+        auto curr = _root;
+        while (curr) {
+            ret._push(curr, false);
+            if (equals(key, curr->_key))
+                break;
+            if (less(key, curr->_key))
+                curr = curr->_left;
+            else {
+                ret._peek().second = true;
+                curr = curr->_right;
+            }
+        }
+
+        if (!curr) // not found
+            return end();
+
+        return ret;
     }
 
     friend std::ostream& operator<<(std::ostream& os, const AVLTree& tree) {
